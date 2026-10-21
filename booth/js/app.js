@@ -1162,6 +1162,23 @@ $('#mirror-check').addEventListener('change', (e) => {
   store.set('mirror', state.mirror);
 });
 $('#reload').addEventListener('click', () => location.reload());
+// 현황 초기화: 실수로 누르지 않게 3초 안에 한 번 더 눌러야 지운다
+let resetArmed = 0;
+$('#stats-reset').addEventListener('click', (e) => {
+  if (Date.now() - resetArmed > 3000) {
+    resetArmed = Date.now();
+    e.target.textContent = '한 번 더 누르면 초기화';
+    setTimeout(() => { e.target.textContent = '현황 초기화'; }, 3000);
+    return;
+  }
+  resetArmed = 0;
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('booth.stats.')).forEach((k) => localStorage.removeItem(k));
+  } catch {}
+  e.target.textContent = '현황 초기화';
+  renderAdmin();
+  toast('현황을 0으로 초기화했어요');
+});
 $('#test-print').addEventListener('click', async () => {
   const frame = activeFrames()[0] || state.frames[0];
   if (!frame) return toast('프레임이 없어요');
