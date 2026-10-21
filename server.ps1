@@ -6,7 +6,7 @@
 #   POST /api/save?name=..  요청 본문(이미지)을 output\YYYY-MM-DD\<name> 으로 저장
 #   POST /api/log           요청 본문(JSON 한 줄)을 logs\YYYY-MM-DD.jsonl 에 추가
 #   GET  /api/printers      프린터 목록 {"printers": [...], "default": "..."}
-#   POST /api/print?printer=..&copies=..  요청 본문(JPG)을 그 프린터로 바로 인쇄 (인쇄 창 없음)
+#   POST /api/printer-default?printer=..  그 프린터를 이 PC의 기본 프린터로 지정
 #   GET  그 외              정적 파일
 
 $ErrorActionPreference = 'Stop'
@@ -43,8 +43,6 @@ function Read-Body($req) {
 
 function Today { (Get-Date).ToString('yyyy-MM-dd') }
 
-Add-Type -AssemblyName System.Drawing
-
 function Get-PrinterNames {
   @(Get-CimInstance -ClassName Win32_Printer | Select-Object -ExpandProperty Name)
 }
@@ -52,37 +50,11 @@ function Get-DefaultPrinter {
   (Get-CimInstance -ClassName Win32_Printer | Where-Object { $_.Default } | Select-Object -First 1).Name
 }
 
-# 사진 한 장(JPG)을 프린터로 보낸다. 용지는 엽서(100x148mm)를 찾아 고르고, 여백 없이 용지 전체에 그린다.
-function Send-ToPrinter([byte[]]$bytes, [string]$printer, [int]$copies) {
-  $ms = New-Object System.IO.MemoryStream(, $bytes)
-  $img = [System.Drawing.Image]::FromStream($ms)
-  try {
-    $doc = New-Object System.Drawing.Printing.PrintDocument
-    $doc.DocumentName = 'photobooth'
-    $doc.PrinterSettings.PrinterName = $printer
-    if (-not $doc.PrinterSettings.IsValid) { throw "프린터를 찾을 수 없어요: $printer" }
-    $doc.PrinterSettings.Copies = [int16]$copies
-    $postcard = $doc.PrinterSettings.PaperSizes | Where-Object {
-      [math]::Abs($_.Width - 394) -lt 10 -and [math]::Abs($_.Height - 583) -lt 10
-    } | Select-Object -First 1
-    if ($postcard) { $doc.DefaultPageSettings.PaperSize = $postcard }
-    $doc.DefaultPageSettings.Landscape = $false
-    $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
-    $doc.OriginAtMargins = $false
-    $doc.add_PrintPage({
-      param($sender, $e)
-      $b = $e.PageBounds
-      # 인쇄 가능 영역 바깥까지 채우도록 하드웨어 여백만큼 당겨서 그린다 (테두리 없음 설정과 함께 쓰기)
-      $x = - $e.PageSettings.HardMarginX
-      $y = - $e.PageSettings.HardMarginY
-      $e.Graphics.DrawImage($img, [single]$x, [single]$y, [single]$b.Width, [single]$b.Height)
-      $e.HasMorePages = $false
-    }.GetNewClosure())
-    $doc.Print()
-  } finally {
-    $img.Dispose()
-    $ms.Dispose()
-  }
+# 고른 프린터를 이 PC의 기본 프린터로 정한다. 부스는 브라우저 인쇄로 기본 프린터에 보낸다.
+# "Windows에서 기본 프린터 관리"가 켜져 있으면 Windows가 기본 프린터를 멋대로 바꾸므로 끈다.
+function Set-DefaultPrinter([string]$printer) {
+  Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Windows' -Name LegacyDefaultPrinterMode -Value 1 -Type DWord
+  (New-Object -ComObject WScript.Network).SetDefaultPrinter($printer)
 }
 
 function Json-Str($text) { '"' + $text.Replace('\', '\\').Replace('"', '\"') + '"' }
@@ -133,16 +105,13 @@ while ($listener.IsListening) {
       $defJson = if ($def) { Json-Str $def } else { '""' }
       Send-Json $res ('{"printers":[' + ($list -join ',') + '],"default":' + $defJson + '}')
     }
-    elseif ($req.HttpMethod -eq 'POST' -and $path -eq '/api/print') {
+    elseif ($req.HttpMethod -eq 'POST' -and $path -eq '/api/printer-default') {
       $printer = $req.QueryString['printer']
-      $copies = 1
-      [int]::TryParse([string]$req.QueryString['copies'], [ref]$copies) | Out-Null
-      $copies = [math]::Max(1, [math]::Min(10, $copies))
       if (-not $printer -or (Get-PrinterNames) -notcontains $printer) {
         Send-Json $res '{"error":"printer not found"}' 400
       } else {
         try {
-          Send-ToPrinter (Read-Body $req) $printer $copies
+          Set-DefaultPrinter $printer
           Send-Json $res '{"ok":true}'
         } catch {
           Send-Json $res ('{"error":' + (Json-Str $_.Exception.Message) + '}') 500

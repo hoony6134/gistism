@@ -58,7 +58,7 @@ const state = {
   sheet: null,    // 인쇄용 캔버스
   mirror: store.get('mirror', C.mirror),
   sound: store.get('sound', C.sound !== false),
-  printer: store.get('printer', ''), // '' = 브라우저 인쇄(기본 프린터), 이름 = 서버가 그 프린터로 바로 인쇄
+  autoBars: store.get('autoBars', true), // 카메라 화면 양옆 검은 띠 자동 잘라내기
   cameraId: store.get('cameraId', ''),
   disabledFrames: new Set(store.get('disabledFrames', [])),
 };
@@ -183,6 +183,7 @@ function detectBars() {
   const W = video.videoWidth;
   const H = video.videoHeight;
   if (!W || !H) return;
+  if (!state.autoBars) { bars = { left: 0, right: 0 }; return; }
   const sw = 320;
   const sh = Math.max(1, Math.round((sw * H) / W));
   barCanvas.width = sw;
@@ -199,14 +200,22 @@ function detectBars() {
       if (luma > colMax[x]) colMax[x] = luma;
     }
   }
-  const DARK = 20;
+  // 진짜 검은 띠만 자른다: 거의 완전한 검정 + 양쪽 너비가 거의 같음 + 띠 경계에서 화면이 갑자기 밝아짐.
+  // (어두운 벽·커튼이 화면 가장자리에 있어도 잘리지 않게)
+  const DARK = 12;
   let l = 0;
   while (l < sw / 3 && colMax[l] < DARK) l++;
   let r = sw - 1;
   while (r > (sw * 2) / 3 && colMax[r] < DARK) r--;
   if (l >= sw / 3 || r <= (sw * 2) / 3) return; // 화면 전체가 어두움 (카메라 꺼짐 등) → 이전 값 유지
-  const toSrc = (n) => (n < 2 ? 0 : Math.ceil(((n + 1) * W) / sw)); // 1% 미만은 띠가 아님, 경계 1칸 여유
-  bars = { left: toSrc(l), right: toSrc(sw - 1 - r) };
+  const left = l;
+  const right = sw - 1 - r;
+  const inside = (x) => Math.min(colMax[x], colMax[x + Math.sign(sw / 2 - x)] ?? 255);
+  const sharp = (x) => inside(x) > 60;
+  const symmetric = Math.abs(left - right) <= sw * 0.03;
+  if (left < 3 || right < 3 || !symmetric || !sharp(l) || !sharp(r)) { bars = { left: 0, right: 0 }; return; }
+  const toSrc = (n) => Math.ceil(((n + 1) * W) / sw); // 경계 1칸 여유
+  bars = { left: toSrc(left), right: toSrc(right) };
 }
 
 function camRect() {
@@ -854,15 +863,6 @@ document.getElementById('page-style').textContent =
 
 async function printSheet(canvas, copies) {
   const blob = await canvasToBlob(canvas, 'image/jpeg', 0.95);
-  // 관리자 메뉴에서 프린터를 골랐으면 로컬 서버가 그 프린터로 바로 보낸다 (Windows 기본 프린터와 상관없음)
-  if (state.printer) {
-    const r = await fetch(`/api/print?printer=${encodeURIComponent(state.printer)}&copies=${copies}`, { method: 'POST', body: blob });
-    if (!r.ok) {
-      const msg = (await r.json().catch(() => ({}))).error || r.status;
-      throw new Error('프린터 오류: ' + msg);
-    }
-    return blob;
-  }
   const url = URL.createObjectURL(blob);
   const area = $('#print-area');
   area.innerHTML = '';
@@ -998,6 +998,7 @@ async function renderAdmin() {
   $('#camera-res').value = cameraRes().join('x');
   $('#mirror-check').checked = state.mirror;
   $('#sound-check').checked = state.sound;
+  $('#bars-check').checked = state.autoBars;
 
   const list = $('#admin-frames');
   list.innerHTML = '';
@@ -1145,6 +1146,12 @@ $('#camera-res').addEventListener('change', async (e) => {
   store.set('cameraRes', e.target.value);
   await startCamera().catch((err) => toast('카메라 오류: ' + err.message));
 });
+$('#bars-check').addEventListener('change', (e) => {
+  state.autoBars = e.target.checked;
+  store.set('autoBars', state.autoBars);
+  detectBars();
+  toast(state.autoBars ? '검은 띠가 있으면 자동으로 잘라내요' : '카메라 화면을 자르지 않고 그대로 써요');
+});
 $('#sound-check').addEventListener('change', (e) => {
   state.sound = e.target.checked;
   store.set('sound', state.sound);
@@ -1160,7 +1167,7 @@ $('#test-print').addEventListener('click', async () => {
   if (!frame) return toast('프레임이 없어요');
   try {
     await printSheet(composeSheet(frame, []), 1);
-    toast(state.printer ? `${state.printer}(으)로 보냈어요` : '인쇄를 보냈어요');
+    toast('인쇄를 보냈어요');
     log('test_print');
   } catch (e) {
     reportError('test_print', e);
@@ -1168,7 +1175,7 @@ $('#test-print').addEventListener('click', async () => {
   }
 });
 
-// 프린터: 로컬 서버에서 목록을 받아 고른다
+// 프린터: 고른 프린터를 이 PC의 기본 프린터로 정한다 (인쇄는 브라우저 인쇄로 기본 프린터에 나감)
 async function renderPrinters() {
   const select = $('#printer-select');
   const note = $('#printer-note');
@@ -1177,26 +1184,26 @@ async function renderPrinters() {
     list = await (await fetch('/api/printers')).json();
   } catch {
     note.textContent = '프린터 목록을 불러오지 못했어요 (서버 확인)';
+    return;
   }
   select.innerHTML = '';
-  const add = (value, label) => {
-    const o = document.createElement('option');
-    o.value = value;
-    o.textContent = label;
-    select.append(o);
-  };
-  add('', `브라우저 인쇄 (Windows 기본 프린터${list.default ? ': ' + list.default : ''})`);
-  for (const name of list.printers) add(name, name + (name === list.default ? ' (기본)' : ''));
-  // 저장해 둔 프린터가 빠졌으면 목록에 표시만 해 둔다
-  if (state.printer && !list.printers.includes(state.printer)) add(state.printer, `${state.printer} (연결 안 됨)`);
-  select.value = state.printer;
-  if (list.printers.length) note.textContent = state.printer
-    ? '인쇄 창 없이 이 프린터로 바로 보내요. 용지는 엽서(100×148mm), 테두리 없음은 프린터 기본 설정에서 켜 두세요.'
-    : '부스 PC의 기본 프린터로 나가요. 다른 프린터(OneNote 등)로 가면 위에서 프린터를 직접 고르세요.';
+  if (!list.default) select.append(new Option('기본 프린터 없음 — 골라 주세요', ''));
+  for (const name of list.printers) select.append(new Option(name + (name === list.default ? ' (지금 기본)' : ''), name));
+  select.value = list.default;
+  note.textContent = list.default
+    ? `지금 '${list.default}'(으)로 인쇄돼요. 다른 프린터를 고르면 그 프린터가 이 PC의 기본 프린터가 돼요.`
+    : '인쇄할 프린터를 고르세요.';
 }
-$('#printer-select').addEventListener('change', (e) => {
-  state.printer = e.target.value;
-  store.set('printer', state.printer);
+$('#printer-select').addEventListener('change', async (e) => {
+  const name = e.target.value;
+  if (!name) return;
+  try {
+    const r = await fetch(`/api/printer-default?printer=${encodeURIComponent(name)}`, { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.status);
+    toast(`${name}을(를) 기본 프린터로 정했어요`);
+  } catch (err) {
+    toast('기본 프린터를 바꾸지 못했어요: ' + err.message, 6000);
+  }
   renderPrinters();
 });
 $('#printer-refresh').addEventListener('click', renderPrinters);

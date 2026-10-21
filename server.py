@@ -9,7 +9,7 @@ Windows에서는 server.ps1을 쓴다. 두 서버는 같은 API를 제공한다.
   POST /api/save?name=..  요청 본문(이미지)을 output/YYYY-MM-DD/<name> 으로 저장
   POST /api/log           요청 본문(JSON 한 줄)을 logs/YYYY-MM-DD.jsonl 에 추가
   GET  /api/printers      프린터 목록 {"printers": [...], "default": "..."}
-  POST /api/print?printer=..&copies=..  요청 본문(JPG)을 그 프린터로 바로 인쇄
+  POST /api/printer-default?printer=..  그 프린터를 이 컴퓨터의 기본 프린터로 지정
   GET  그 외              정적 파일
 """
 import datetime
@@ -18,7 +18,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -103,19 +102,13 @@ class Handler(SimpleHTTPRequestHandler):
             with open(os.path.join(folder, today() + ".jsonl"), "a", encoding="utf-8") as f:
                 f.write(line + "\n")
             return self.send_json({"ok": True})
-        if url.path == "/api/print":
-            q = parse_qs(url.query)
-            printer = q.get("printer", [""])[0]
-            copies = max(1, min(10, int(q.get("copies", ["1"])[0] or 1)))
+        if url.path == "/api/printer-default":
+            printer = parse_qs(url.query).get("printer", [""])[0]
             if printer not in list_printers()[0]:
                 return self.send_json({"error": "printer not found"}, 400)
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
-                f.write(self.read_body())
-            r = subprocess.run(["lp", "-d", printer, "-n", str(copies), "-o", "fit-to-page", f.name],
-                               capture_output=True, text=True)
-            os.unlink(f.name)
+            r = subprocess.run(["lpoptions", "-d", printer], capture_output=True, text=True)
             if r.returncode != 0:
-                return self.send_json({"error": r.stderr.strip() or "print failed"}, 500)
+                return self.send_json({"error": r.stderr.strip() or "failed"}, 500)
             return self.send_json({"ok": True})
         return self.send_json({"error": "not found"}, 404)
 
