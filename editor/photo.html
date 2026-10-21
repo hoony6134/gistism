@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ececec">
+  <title>네컷 사진 받기</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <script src="config.js"></script>
+  <style>
+    :root { --bg: #ececec; --ink: #111111; --soft: #8a8a8a; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+      font-family: Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+      display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 16px 40px; text-align: center;
+    }
+    h1 { font-size: 22px; margin: 0; }
+    p { margin: 0; color: var(--soft); line-height: 1.5; }
+    img { max-width: 100%; max-height: 70vh; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); border-radius: 4px; }
+    a.btn {
+      display: inline-block; background: #111; color: #fff; text-decoration: none;
+      font-weight: 700; padding: 14px 28px; border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <h1>오늘의 네컷 📸</h1>
+  <img id="photo" alt="네컷 사진" hidden>
+  <a class="btn" id="download" download="네컷.jpg" hidden>사진 저장하기</a>
+  <p id="msg">아이폰은 사진을 길게 눌러 "사진 앱에 저장"을 선택하세요.</p>
+  <script>
+    const url = decodeURIComponent(location.hash.slice(1));
+    const base = window.EDITOR_CONFIG.supabaseUrl + '/storage/v1/object/public/photos/';
+    const img = document.getElementById('photo');
+    const msg = document.getElementById('msg');
+    if (!window.EDITOR_CONFIG.supabaseUrl || !url.startsWith(base)) {
+      msg.textContent = '사진 주소가 올바르지 않아요.';
+    } else {
+      img.src = url;
+      img.hidden = false;
+      img.onerror = () => { img.hidden = true; msg.textContent = '사진을 찾을 수 없어요. 보관 기간(48시간)이 지났을 수 있어요.'; };
+      const a = document.getElementById('download');
+      a.href = url + '?download=' + encodeURIComponent('네컷.jpg');
+      a.hidden = false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>포토부스</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style id="page-style"></style>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+</head>
+<body>
+  <div id="admin-hotspot" aria-hidden="true"></div>
+
+  <!-- 1. 홈: 큰 타일 네 개 (인사 · 일반 네컷 · 캐릭터 네컷 · 찍는 법) -->
+  <section class="screen" id="attract">
+    <div class="bento">
+      <div class="tile tile-hero">
+        <p class="kicker" id="booth-title"></p>
+        <h1>오늘을,<br>네 컷에.</h1>
+        <p class="sub">찍고, 네 장 고르고, 프레임을 입혀<br>바로 뽑아 가는 사진.</p>
+        <dl class="specs">
+          <div><dt>6컷</dt><dd>카운트다운 촬영</dd></div>
+          <div><dt>4장</dt><dd>골라서 인화</dd></div>
+          <div><dt>40초</dt><dd>4×6 사진 출력</dd></div>
+        </dl>
+      </div>
+      <button class="tile tile-mode" id="mode-normal">
+        <span class="tile-text">
+          <strong>일반 네컷</strong>
+          <span>먼저 찍고, 사진에 어울리는<br>프레임을 골라요.</span>
+          <span class="pill">시작하기</span>
+        </span>
+        <span class="tile-art"></span>
+      </button>
+      <button class="tile tile-mode tile-warm" id="mode-character">
+        <span class="tile-text">
+          <strong>캐릭터 네컷</strong>
+          <span>캐릭터와 함께 찍어요.</span>
+          <span class="pill">시작하기</span>
+        </span>
+        <span class="tile-art"></span>
+      </button>
+      <div class="tile tile-how">
+        <strong>이렇게 찍어요</strong>
+        <ol>
+          <li><b>찍기</b><span>화면을 보고 카운트다운에 맞춰 포즈</span></li>
+          <li><b>고르기</b><span>마음에 드는 사진 네 장</span></li>
+          <li><b>뽑기</b><span>프린터 앞에서 40초</span></li>
+        </ol>
+      </div>
+    </div>
+    <aside class="attract-qr" id="attract-qr" hidden>
+      <div class="qr" id="editor-qr"></div>
+      <span>폰으로 나만의 프레임 만들기</span>
+    </aside>
+  </section>
+
+  <!-- 2. 촬영 준비: 왼쪽 미리보기, 오른쪽 큰 숫자 세 개 -->
+  <section class="screen split" id="ready">
+    <div class="ready-view">
+      <video class="cam-preview" autoplay muted playsinline></video>
+      <canvas class="ready-frame" id="ready-frame" hidden></canvas>
+    </div>
+    <div class="side">
+      <header class="top">
+        <button class="link" id="ready-back">← 처음으로</button>
+      </header>
+      <h2 class="display">자리를 잡아<br>주세요.</h2>
+      <dl class="numbers">
+        <div><dt id="ready-shots"></dt><dd>컷을 차례로 찍어요</dd></div>
+        <div><dt id="ready-seconds"></dt><dd>초마다 한 컷</dd></div>
+        <div><dt id="ready-pick"></dt><dd>장을 골라 인화해요</dd></div>
+      </dl>
+      <p class="note">렌즈 바로 아래를 보면 시선이 자연스러워요.</p>
+      <div class="side-foot">
+        <p class="note" id="ready-auto"></p>
+        <button class="btn btn-primary" id="ready-start">촬영 시작</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 프레임 선택 -->
+  <section class="screen" id="select">
+    <header class="top">
+      <button class="link" id="select-back">← 처음으로</button>
+      <ol class="steps" aria-label="진행 단계"></ol>
+    </header>
+    <h2 class="display" id="select-title">프레임을 골라주세요</h2>
+    <div class="frame-grid" id="frame-grid"></div>
+    <footer class="foot">
+      <p class="note">카드를 눌러 고른 뒤 오른쪽 버튼을 누르세요</p>
+      <button class="btn btn-primary" id="select-next" disabled>이 프레임으로</button>
+    </footer>
+  </section>
+
+  <!-- 4. 내 프레임 번호 입력 -->
+  <section class="screen" id="code">
+    <header class="top">
+      <button class="link" data-go="select">← 프레임 고르기</button>
+    </header>
+    <h2 class="display">내 프레임 불러오기</h2>
+    <div class="code-body">
+      <div class="code-entry" id="code-entry">
+        <p class="note">폰에서 받은 4자리 번호를 입력하세요</p>
+        <div class="code-boxes" id="code-boxes"></div>
+        <p class="error" id="code-error"></p>
+        <div class="keypad" id="code-keypad"></div>
+      </div>
+      <div class="code-preview" id="code-preview" hidden>
+        <canvas id="code-canvas" width="300" height="900"></canvas>
+        <div class="code-preview-actions">
+          <p class="note">이 프레임으로 찍을까요?</p>
+          <button class="btn btn-primary" id="code-use">이 프레임으로 촬영</button>
+          <button class="link" id="code-retry">다른 번호 입력</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 촬영 (캐릭터 프레임은 live 클래스: 프레임 위에 실시간 카메라) -->
+  <section class="screen" id="shoot">
+    <div class="shoot-main">
+      <div class="viewfinder" id="viewfinder">
+        <video id="video" autoplay muted playsinline></video>
+      </div>
+      <canvas class="live-canvas" id="live-canvas" hidden></canvas>
+      <canvas class="live-mini" id="live-mini" hidden></canvas>
+    </div>
+    <div class="countdown" id="countdown"></div>
+    <div class="flash" id="flash"></div>
+    <div class="shot-counter" id="shot-counter"></div>
+    <p class="shoot-hint" id="shoot-hint"></p>
+  </section>
+
+  <!-- 6. 사진 고르기: 왼쪽 찍은 사진들, 오른쪽 제목·미리보기·버튼 -->
+  <section class="screen split" id="pick">
+    <div class="pick-grid" id="pick-grid"></div>
+    <div class="side">
+      <header class="top">
+        <span></span>
+        <ol class="steps" aria-label="진행 단계"></ol>
+      </header>
+      <h2 class="display" id="pick-title">사진을 골라주세요</h2>
+      <p class="note">누른 순서대로 칸에 들어가요. 다시 누르면 빠져요.</p>
+      <div class="preview"><canvas id="pick-canvas"></canvas></div>
+      <div class="side-foot">
+        <button class="btn btn-primary" id="pick-done" disabled>다음</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 인쇄: 왼쪽 완성본, 오른쪽 큰 숫자 -->
+  <section class="screen split" id="print">
+    <div class="preview print-preview"><canvas id="sheet-canvas"></canvas></div>
+    <div class="side">
+      <header class="top">
+        <button class="link" id="print-back">← 다시 고르기</button>
+        <ol class="steps" aria-label="진행 단계"></ol>
+      </header>
+      <h2 class="display">몇 장<br>뽑을까요?</h2>
+      <div class="stepper">
+        <button class="btn btn-round" id="copies-minus" aria-label="한 장 줄이기">−</button>
+        <span id="copies">1</span>
+        <button class="btn btn-round" id="copies-plus" aria-label="한 장 늘리기">+</button>
+      </div>
+      <p class="note" id="copies-hint">한 장에 두 줄이 나와요. 잘라서 나눠 가지세요</p>
+      <div class="side-foot">
+        <button class="btn btn-primary" id="print-btn">인쇄하기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. 완료: 화면 전체가 먹색 면 -->
+  <section class="screen" id="done">
+    <div class="done-body">
+      <h1>사진이<br>나오고 있어요.</h1>
+      <p class="home-sentence">프린터 앞에서 40초쯤 기다려 주세요. 사진 파일은 QR로 받을 수 있어요.</p>
+    </div>
+    <div class="done-qrs">
+      <div class="qr-card" id="download-card" hidden>
+        <div class="qr" id="download-qr"><span class="spinner"></span></div>
+        <strong>사진 파일 받기</strong>
+        <p id="download-note">업로드 중…</p>
+      </div>
+      <div class="qr-card" id="survey-card" hidden>
+        <div class="qr" id="survey-qr"></div>
+        <strong>설문 참여하기</strong>
+        <p>1분이면 끝나요</p>
+      </div>
+      <button class="btn btn-primary" data-go="attract">처음으로 <span id="done-timer"></span></button>
+    </div>
+  </section>
+
+  <!-- 관리자 -->
+  <div class="overlay" id="admin" hidden>
+    <div class="admin-panel">
+      <div id="admin-lock">
+        <h2>관리자</h2>
+        <div class="code-boxes" id="pin-boxes"></div>
+        <div class="keypad" id="pin-keypad"></div>
+        <button class="btn btn-ghost" id="admin-cancel">닫기</button>
+      </div>
+      <div id="admin-body" hidden>
+        <header class="bar">
+          <span></span>
+          <h2>관리자 메뉴</h2>
+          <button class="btn btn-ghost" id="admin-close">닫기</button>
+        </header>
+        <div class="admin-grid">
+          <section>
+            <h3>오늘 현황</h3>
+            <div class="stats" id="admin-stats"></div>
+          </section>
+          <section>
+            <h3>카메라</h3>
+            <select id="camera-select"></select>
+            <select id="camera-res" aria-label="카메라 해상도">
+              <option value="1920x1080">1920×1080 (권장)</option>
+              <option value="3840x2160">3840×2160 (4K)</option>
+              <option value="2560x1440">2560×1440</option>
+              <option value="1280x720">1280×720</option>
+            </select>
+            <label class="check"><input type="checkbox" id="mirror-check"> 좌우 반전 (거울 모드)</label>
+            <label class="check"><input type="checkbox" id="sound-check"> 촬영 소리 (카운트다운 삑 · 셔터 찰칵)</label>
+            <p class="small" id="camera-info"></p>
+            <p class="small">카메라 정보 표시나 검은 테두리가 보이면 카메라 HDMI 설정을 먼저 바꾸고, 그래도 남으면 촬영 설정의 "가장자리 자르기"를 올리세요.</p>
+          </section>
+          <section>
+            <h3>촬영 설정</h3>
+            <div id="admin-settings"></div>
+            <p class="small">바꾼 값은 이 컴퓨터에 저장돼요.</p>
+          </section>
+          <section>
+            <h3>사진 색감</h3>
+            <div id="admin-color"></div>
+            <p class="small">카메라 노출(ISO·셔터)은 카메라에서 맞추고, 여기서는 들어온 화면을 살짝 고쳐요. 바꾸면 촬영 준비 화면과 찍히는 사진에 바로 반영돼요. 0이면 보정 없음.</p>
+          </section>
+          <section>
+            <h3>화면</h3>
+            <div class="tool-row">
+              <button class="btn" id="fullscreen-btn">전체화면</button>
+              <button class="btn" id="window-btn">창 모드</button>
+              <button class="btn" id="screens-btn">모니터 고르기</button>
+            </div>
+            <div class="screen-list" id="screen-list"></div>
+            <p class="small" id="display-state"></p>
+          </section>
+          <section>
+            <h3>프레임 켜기/끄기</h3>
+            <div id="admin-frames"></div>
+            <p class="small">프레임 추가: photobooth\frames\normal (일반), frames\character (캐릭터) 폴더에 JPG·PNG를 넣고 새로고침</p>
+            <p class="small error" id="frame-errors"></p>
+          </section>
+          <section>
+            <h3>프린터</h3>
+            <select id="printer-select" aria-label="프린터"></select>
+            <div class="tool-row" style="margin-top: 10px">
+              <button class="btn" id="printer-refresh">목록 새로고침</button>
+            </div>
+            <p class="small" id="printer-note"></p>
+          </section>
+          <section>
+            <h3>도구</h3>
+            <div class="tool-row">
+              <button class="btn" id="test-print">테스트 인쇄</button>
+              <button class="btn" id="reload">프로그램 새로고침</button>
+            </div>
+            <p class="small">테스트 인쇄는 위 '프린터'에서 고른 곳으로 나가요.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <div id="print-area"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

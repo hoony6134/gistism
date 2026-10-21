@@ -1,0 +1,10 @@
+# 부스 실행 중에 생기는 것 (브라우저 프로필, 촬영 결과, 로그)
+.browser-profile/
+.browser-profile-mac/
+output/
+logs/
+# 화면 확인용 캡처
+검증/
+.taste-skill/
+.DS_Store
+__pycache__/

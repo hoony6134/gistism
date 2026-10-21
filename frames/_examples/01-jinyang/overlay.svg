@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1800" viewBox="0 0 600 1800">
+<g transform="translate(560 30) rotate(20) scale(0.9)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><g transform="translate(18 430) rotate(-30) scale(0.8)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><g transform="translate(584 815) rotate(25) scale(0.8)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><g transform="translate(16 1200) rotate(-15) scale(0.8)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><g transform="translate(540 1600) rotate(30) scale(1.1)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><g transform="translate(470 1760) rotate(-20) scale(0.8)" fill="#f2c9a0">
+<ellipse cx="0" cy="8" rx="13" ry="11"/><circle cx="-14" cy="-8" r="5.5"/><circle cx="-5" cy="-15" r="5.5"/><circle cx="5" cy="-15" r="5.5"/><circle cx="14" cy="-8" r="5.5"/></g><rect x="30" y="60" width="540" height="360" rx="12" fill="none" stroke="#3a2a20" stroke-width="5"/><rect x="30" y="444" width="540" height="360" rx="12" fill="none" stroke="#3a2a20" stroke-width="5"/><rect x="30" y="828" width="540" height="360" rx="12" fill="none" stroke="#3a2a20" stroke-width="5"/><rect x="30" y="1212" width="540" height="360" rx="12" fill="none" stroke="#3a2a20" stroke-width="5"/><g transform="translate(118 1690)">
+<path d="M-62 10 L-52 -58 L-18 -30 Q0 -36 18 -30 L52 -58 L62 10 Q60 62 0 66 Q-60 62 -62 10Z" fill="#3a2a20"/>
+<circle cx="-22" cy="8" r="8" fill="#ffd36b"/><circle cx="22" cy="8" r="8" fill="#ffd36b"/>
+<path d="M-6 26 L6 26 L0 33Z" fill="#f4a3a3"/>
+<path d="M-40 30 L-78 22 M-40 38 L-78 42 M40 30 L78 22 M40 38 L78 42" stroke="#3a2a20" stroke-width="3" stroke-linecap="round"/></g>
+<text x="210" y="1680" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif" font-size="64" font-weight="800" fill="#3a2a20">지냥이네컷</text>
+<text x="212" y="1730" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif" font-size="24" font-weight="600" fill="#b07a4f" letter-spacing="3">SERVICE LEARNING PHOTO</text>
+</svg>

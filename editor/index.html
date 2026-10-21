@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ececec">
+  <title>나만의 네컷 프레임</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="ai-prompt.js"></script>
+  <script src="https://unpkg.com/konva@9.3.18/konva.min.js"></script>
+</head>
+<body>
+  <!-- 1. 템플릿 고르기 -->
+  <section class="step active" id="step-template">
+    <header class="top">
+      <h1>나만의 네컷 프레임</h1>
+      <p>템플릿을 고르고 스티커·사진·글자로 꾸며보세요.<br>완성하면 부스에서 쓸 4자리 번호가 나와요.</p>
+    </header>
+    <p class="tip">🐶 <b>캐릭터 프레임</b>: "콜라보" 템플릿을 고르고 아래 <b>캐릭터</b> 버튼으로 캐릭터 그림 여러 장을 올리면 사진 칸 주변에 자동으로 배치돼요. 카카오 이모티콘 캡처나 공식 이미지를 올리면 원본 그대로 들어가요.</p>
+    <div class="template-grid" id="template-grid"></div>
+    <section class="ai-card">
+      <div class="ai-head">
+        <strong>✨ AI로 캐릭터 프레임 만들기</strong>
+        <span>좋아하는 캐릭터 이름만 쓰면 AI가 2×2 캐릭터 프레임을 그려줘요 (무료)</span>
+      </div>
+      <div class="ai-block">
+        <b>1. 캐릭터 이름</b>
+        <input type="text" id="ai-name" class="ai-input" maxlength="40" placeholder="예: 가나디, 피카츄, 짱구">
+      </div>
+      <div class="ai-block">
+        <b>2. 분위기</b>
+        <div class="chips" id="ai-moods"></div>
+        <input type="text" id="ai-mood-text" class="ai-input" maxlength="60" placeholder="직접 입력 (예: 노란색, 하트 장식 많이, 말풍선 넣기)">
+      </div>
+      <button class="btn btn-primary btn-block" id="ai-generate" hidden>✨ 바로 생성하기</button>
+      <div class="ai-block">
+        <b>3. 요청문 복사 → AI 앱에 붙여넣기</b>
+        <textarea id="ai-prompt-box" class="ai-input ai-prompt-box" readonly rows="4" placeholder="캐릭터 이름을 쓰면 여기에 요청문이 만들어져요"></textarea>
+        <button class="btn btn-primary btn-block" id="ai-copy">📋 요청문 복사</button>
+        <small class="ai-note">아래 AI 버튼을 누르면 복사와 함께 앱(없으면 웹)이 열려요. 입력창에 붙여넣어 보내세요. 안 그려 주면 다른 AI를 열어 보세요.</small>
+        <div class="ai-apps">
+          <a class="btn" href="https://gemini.google.com/app" data-ai-pkg="com.google.android.apps.bard" target="_blank" rel="noopener">Gemini</a>
+          <a class="btn" href="https://chatgpt.com/" data-ai-pkg="com.openai.chatgpt" target="_blank" rel="noopener">ChatGPT</a>
+          <a class="btn" href="https://copilot.microsoft.com/" data-ai-pkg="com.microsoft.copilot" target="_blank" rel="noopener">Copilot</a>
+        </div>
+      </div>
+      <div class="ai-block">
+        <b>4. 다 그렸으면</b>
+        <button class="btn btn-primary btn-block" id="ai-upload">만든 그림 올리기</button>
+        <small class="ai-note">AI 그림의 <b>진분홍(마젠타) 칸은 사진 들어갈 자리 표시</b>예요. 올리면 자동으로 뚫려서 분홍색은 인쇄되지 않아요.</small>
+      </div>
+      <input type="file" id="ai-input" accept="image/*" hidden>
+    </section>
+    <p class="notice">다른 사람의 사진이나 부적절한 이미지는 올리지 말아주세요.<br>만든 프레임은 48시간 동안만 쓸 수 있고 행사가 끝나면 삭제돼요.</p>
+  </section>
+
+  <!-- 2. 꾸미기 -->
+  <section class="step" id="step-edit">
+    <header class="edit-top">
+      <button class="btn btn-ghost" id="back-template">← 템플릿</button>
+      <button class="btn btn-primary" id="finish">완성하기</button>
+    </header>
+    <div class="stage-wrap" id="stage-wrap">
+      <div id="stage"></div>
+      <button class="item-delete" id="item-delete" hidden aria-label="삭제">✕</button>
+    </div>
+    <p class="edit-hint" id="edit-hint">회색 칸에 사진이 들어가요. 스티커는 사진 위에 올려도 돼요.</p>
+    <nav class="toolbar">
+      <button data-sheet="sheet-sticker"><span>🐱</span>스티커</button>
+      <button data-sheet="sheet-char"><span>🐶</span>캐릭터</button>
+      <button id="add-photo"><span>🖼️</span>사진</button>
+      <button data-sheet="sheet-text" id="text-tool"><span>Aa</span>글자</button>
+      <button data-sheet="sheet-bg"><span>🎨</span>배경</button>
+    </nav>
+    <input type="file" id="photo-input" accept="image/*" hidden>
+
+    <div class="sheet" id="sheet-sticker" hidden>
+      <div class="sheet-head"><strong>스티커</strong><button class="btn btn-ghost" data-close>닫기</button></div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div class="sheet" id="sheet-char" hidden>
+      <div class="sheet-head"><strong>캐릭터 자동 배치</strong><button class="btn btn-ghost" data-close>닫기</button></div>
+      <p class="sheet-note">캐릭터 그림을 여러 장 올리면 사진 칸 모서리·가장자리에 자동으로 배치돼요. 흰 배경은 자동으로 지워져요 (배경이 투명한 PNG가 가장 깔끔해요).</p>
+      <button class="btn btn-primary btn-block" id="char-add">캐릭터 그림 올리기 (여러 장)</button>
+      <div class="sheet-row">
+        <button class="btn btn-block" id="char-shuffle">🔀 다시 배치</button>
+        <button class="btn btn-ghost" id="char-clear">모두 지우기</button>
+      </div>
+      <input type="file" id="char-input" accept="image/*" multiple hidden>
+    </div>
+    <div class="sheet" id="sheet-text" hidden>
+      <div class="sheet-head"><strong id="text-sheet-title">글자 넣기</strong><button class="btn btn-ghost" data-close>닫기</button></div>
+      <input type="text" id="text-input" maxlength="30" placeholder="예: A+ 기원, 안아줘!">
+      <label class="check-row"><input type="checkbox" id="text-bubble"> 💬 말풍선으로 넣기</label>
+      <div class="swatches" id="text-colors"></div>
+      <button class="btn btn-primary btn-block" id="text-apply">넣기</button>
+    </div>
+    <div class="sheet" id="sheet-bg" hidden>
+      <div class="sheet-head"><strong>배경 · 사진 칸 모양</strong><button class="btn btn-ghost" data-close>닫기</button></div>
+      <div class="swatches" id="bg-colors"></div>
+      <div class="shape-row" id="slot-shapes">
+        <button class="btn" data-shape="rect">▭ 사각</button>
+        <button class="btn" data-shape="round">▢ 둥근</button>
+        <button class="btn" data-shape="cloud">☁️ 구름</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 완료 -->
+  <section class="step" id="step-done">
+    <div class="done">
+      <p>부스 화면에서 <b>내 프레임</b>을 누르고<br>이 번호를 입력하세요</p>
+      <div class="code" id="code"></div>
+      <img id="done-preview" alt="완성한 프레임">
+      <p class="notice">번호는 48시간 동안 쓸 수 있어요. 화면을 캡처해 두면 편해요!</p>
+      <button class="btn btn-ghost" id="restart">새 프레임 만들기</button>
+    </div>
+  </section>
+
+  <div class="busy" id="busy" hidden><span class="spinner"></span><p>저장 중…</p></div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="editor.js"></script>
+</body>
+</html>
