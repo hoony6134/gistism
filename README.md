@@ -112,15 +112,17 @@ photobooth/frames/
 
 ### 4-2. 에디터를 인터넷에 올리기
 1. `editor/config.js`에 Supabase URL과 키 입력
-2. https://app.netlify.com/drop 에 `editor` 폴더를 드래그 → 주소가 나옴 (예: `https://xxx.netlify.app/`)
-   - GitHub Pages 등 다른 정적 호스팅도 OK
+2. **지금은 Vercel**: GitHub 저장소 `hoony6134/gistism`을 Vercel에서 가져오기 → 주소 `https://gistism.scian.xyz/` (기본 주소 `https://gistism.vercel.app/`)
+   - Root Directory `editor`, Framework Preset `Other`, Build Command 비움, Output Directory `.`
+   - `main`에 푸시하면 자동으로 다시 배포된다
+   - 예전 Netlify(`srpphotobuth.netlify.app`)나 다른 정적 호스팅도 그대로 쓸 수 있다
 
 ### 4-3. 부스에 연결
 `booth/config.js`에 입력:
 ```js
 supabaseUrl: 'https://abcd1234.supabase.co',
 supabaseAnonKey: '...',
-editorUrl: 'https://xxx.netlify.app/',
+editorUrl: 'https://gistism.scian.xyz/',   // 사진 받기 QR = 이 주소 + photo.html
 ```
 → 대기 화면에 에디터 QR, 프레임 선택 화면에 "내 프레임" 버튼, 완료 화면에 사진 다운로드 QR이 생긴다.
 

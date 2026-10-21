@@ -29,7 +29,7 @@ window.BOOTH_CONFIG = {
   // 클라우드 (Supabase). 비워두면 커스텀 프레임·다운로드 QR 기능이 꺼진다.
   supabaseUrl: 'https://nksgzjdycylfyqiqedfa.supabase.co',
   supabaseAnonKey: 'sb_publishable_ir0A60NTfHR46gijxIU6ow_EXxQqZ7M',
-  editorUrl: 'https://srpphotobuth.netlify.app/',
+  editorUrl: 'https://gistism.scian.xyz/', // 사진 받기 페이지(editor/photo.html)가 올라간 Vercel 주소
   customFrameMaxAgeHours: 48,
 
   // 완료 화면에 띄울 설문 QR (비워두면 표시 안 함)
