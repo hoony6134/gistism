@@ -1162,6 +1162,44 @@ $('#mirror-check').addEventListener('change', (e) => {
   store.set('mirror', state.mirror);
 });
 $('#reload').addEventListener('click', () => location.reload());
+
+// 카메라 화면 테스트: 실제로 찍히는 영역을 그대로 보여 준다 (좌우 반전·검은 띠·가장자리 자르기·색감 보정 모두 반영)
+let camTest = false;
+function setCamTest(on) {
+  camTest = on;
+  $('#cam-test-wrap').hidden = !on;
+  $('#cam-test-info').hidden = !on;
+  $('#cam-test-btn').textContent = on ? '테스트 끄기' : '카메라 화면 테스트';
+  if (on) requestAnimationFrame(drawCamTest);
+}
+function drawCamTest() {
+  if (!camTest) return;
+  if ($('#admin').hidden) return setCamTest(false); // 관리자 메뉴를 닫으면 같이 끈다
+  const r = camRect();
+  if (video.videoWidth && r.w > 0) {
+    const c = $('#cam-test');
+    const w = 960;
+    const h = Math.round((w * r.h) / r.w);
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    const g = c.getContext('2d');
+    g.save();
+    if (state.mirror) { g.translate(w, 0); g.scale(-1, 1); }
+    g.filter = camFilter();
+    g.drawImage(video, r.ox, r.oy, r.w, r.h, 0, 0, w, h);
+    g.restore();
+    const cut = bars.left || bars.right ? ` · 양옆 검은 띠 ${bars.left}+${bars.right}px 잘라냄` : '';
+    $('#cam-test-info').textContent = `찍히는 영역 ${r.w}×${r.h} (카메라 원본 ${video.videoWidth}×${video.videoHeight})${cut}`;
+  }
+  requestAnimationFrame(drawCamTest);
+}
+$('#cam-test-btn').addEventListener('click', async () => {
+  if (camTest) return setCamTest(false);
+  if (!video.videoWidth) {
+    try { await startCamera(); } catch (e) { return toast('카메라를 열지 못했어요: ' + e.message, 6000); }
+  }
+  detectBars();
+  setCamTest(true);
+});
 // 현황 초기화: 실수로 누르지 않게 3초 안에 한 번 더 눌러야 지운다
 let resetArmed = 0;
 $('#stats-reset').addEventListener('click', (e) => {

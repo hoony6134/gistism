@@ -209,11 +209,18 @@ button.tile:active .pill { background: var(--blue-press); }
   flex: 1 1 0; min-width: 260px; max-width: 620px;
   background: var(--surface); border: 0; border-radius: var(--r-tile);
   padding: 32px 28px 26px;
-  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 18px;
+  /* 위: 프레임 미리보기(남는 공간 전부), 아래: 이름·설명 */
+  display: grid; grid-template-rows: minmax(0, 1fr) auto auto; justify-items: center; gap: 12px;
+  overflow: hidden;
   transition: transform 220ms var(--ease), box-shadow 150ms;
 }
 .frame-card:active { transform: scale(0.985); }
-.frame-card canvas { height: calc(100% - 60px); max-height: 600px; width: auto; border-radius: 4px; box-shadow: var(--print-shadow); }
+/* 너비·높이 둘 다 최대값만 주면 비율을 지킨 채 카드 안에 맞춰 줄어든다 (넓은 2×2도 옆 카드를 넘지 않음) */
+.frame-card canvas {
+  align-self: center; min-height: 0;
+  width: auto; height: auto; max-width: 100%; max-height: min(100%, 600px);
+  border-radius: 4px; box-shadow: var(--print-shadow);
+}
 .frame-card strong { font-size: clamp(19px, 1.3vw, 24px); font-weight: 600; letter-spacing: -0.02em; }
 .frame-card span { color: var(--ink-3); font-size: 14px; }
 .frame-card.selected { box-shadow: inset 0 0 0 4px var(--blue); }
@@ -351,6 +358,9 @@ button.tile:active .pill { background: var(--blue-press); }
 .mini-stepper .btn { width: 52px; min-height: 52px; height: 52px; padding: 0; font-size: 26px; border-radius: 50%; }
 .mini-stepper b { min-width: 56px; text-align: center; font-size: 22px; }
 .screen-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.cam-test { background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+.cam-test canvas { width: 100%; height: auto; }
+#camera-info, #cam-test-info { overflow-wrap: anywhere; }
 
 .toast {
   position: fixed; left: 50%; top: 24px; transform: translateX(-50%);
