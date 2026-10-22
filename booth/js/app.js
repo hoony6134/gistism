@@ -935,18 +935,35 @@ async function startDoneScreen(frame, photos, sessionId) {
   if (!cloudEnabled()) return;
   $('#download-qr').innerHTML = '<span class="spinner"></span>';
   $('#download-note').textContent = '업로드 중…';
-  try {
-    const single = composeSingle(frame, photos);
-    const url = await uploadPhoto(await canvasToBlob(single, 'image/jpeg', 0.92), `${sessionId}.jpg`);
-    if (state.screen !== 'done') return;
-    renderQr($('#download-qr'), downloadPageUrl(url));
-    $('#download-note').textContent = '48시간 동안 받을 수 있어요';
-    log('upload_ok');
-  } catch (e) {
-    reportError('upload', e);
-    $('#download-qr').innerHTML = '';
-    $('#download-note').textContent = '지금은 파일 받기를 쓸 수 없어요';
+  const blob = await canvasToBlob(composeSingle(frame, photos), 'image/jpeg', 0.92);
+  // 인터넷이 잠깐 끊겨도 받을 수 있게 세 번까지 다시 시도
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const url = await uploadPhoto(blob, attempt === 1 ? `${sessionId}.jpg` : `${sessionId}-${attempt}.jpg`);
+      if (state.screen !== 'done') return;
+      renderQr($('#download-qr'), downloadPageUrl(url));
+      $('#download-note').textContent = '48시간 동안 받을 수 있어요';
+      log('upload_ok', { attempt });
+      return;
+    } catch (e) {
+      lastError = e;
+      if (state.screen !== 'done') return;
+      if (attempt < 3) {
+        $('#download-note').textContent = `업로드 다시 시도 중… (${attempt + 1}/3)`;
+        await sleep(2000 * attempt);
+      }
+    }
   }
+  reportError('upload', lastError);
+  if (state.screen !== 'done') return;
+  $('#download-qr').innerHTML = '';
+  // 원인을 작게 보여 준다 (진행 요원이 보고 판단할 수 있게)
+  const msg = String(lastError?.message || lastError);
+  const reason = /Failed to fetch|NetworkError|Load failed/i.test(msg) ? '인터넷 연결 안 됨'
+    : /시간 초과/.test(msg) ? '인터넷이 느림'
+    : msg;
+  $('#download-note').textContent = `지금은 파일 받기를 쓸 수 없어요 (${reason})`;
 }
 
 // ───────── 관리자 ─────────
